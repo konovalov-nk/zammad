@@ -31,6 +31,9 @@
 /db/*.sqlite3
 /db/schema.rb
 
+# environment files
+.env
+
 # translation cache files
 /config/locales*.yml
 /config/translations/*.yml

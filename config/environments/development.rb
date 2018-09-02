@@ -24,6 +24,7 @@ Rails.application.configure do
 
   # Do not compress assets
   config.assets.compress = false
+  config.serve_static_assets = true
 
   # Debug mode disables concatenation and preprocessing of assets.
   # This option may cause significant delays in view rendering with a large

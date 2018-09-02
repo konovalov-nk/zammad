@@ -1,0 +1,16 @@
+version: '2'
+
+services:
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+  zammad-nginx:
+    environment:
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
+    ports:
+      - "8001:80"
