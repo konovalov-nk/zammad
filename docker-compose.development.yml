@@ -3,4 +3,4 @@ version: '2.1'
 services:
 
   zammad-railsserver:
-    volumes: [".:/opt/zammad", "/opt/zammad/config/database.yml"]
+    volumes: [".:/opt/zammad"]

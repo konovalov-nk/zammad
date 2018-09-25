@@ -2,7 +2,7 @@ version: '2.1'
 
 services:
 
-  app: &app
+  zammad: &zammad
     build:
       context: .
       dockerfile: docker/containers/zammad/Dockerfile
@@ -15,23 +15,19 @@ services:
       zammad-postgresql: {"condition": "service_healthy"}
     env_file: .env
 
-    # use tmpfs for tmp and log for performance and to allow
-    # multiple builds in parallel. Both directories are mounted
-    # into the image AFTER the working directory is mounted.
-    # tmpfs: ["/opt/zammad/tmp", "/opt/zammad/log"]
-
-  zammad: &zammad
-    <<: *app
     entrypoint: ["/docker-entrypoint.sh"]
     command: ["zammad-init"]
-    environment:
-      RAILS_ENV: ${RAILS_ENV}
     healthcheck:
       test: bash -c "[ -f /opt/zammad/tmp/zammad.ready ]" || exit 1
       interval: 10s
       timeout: 1s
-      retries: 300
+      retries: 60
     image: zammad${IMAGE_VERSION}
+
+    # use tmpfs for tmp and log for performance and to allow
+    # multiple builds in parallel. Both directories are mounted
+    # into the image AFTER the working directory is mounted.
+    # tmpfs: ["/opt/zammad/tmp", "/opt/zammad/log"]
 
   # zammad app services
   zammad-railsserver:
@@ -40,10 +36,10 @@ services:
     depends_on:
       zammad: {"condition": "service_healthy"}
     healthcheck:
-      test: curl http://localhost:3000 || exit 1
+      test: ps aux | grep puma || exit 1
       interval: 10s
       timeout: 1s
-      retries: 300
+      retries: 60
 
   zammad-scheduler:
     <<: *zammad
@@ -61,6 +57,12 @@ services:
     depends_on:
       zammad-memcached: {"condition": "service_healthy"}
       zammad-railsserver: {"condition": "service_healthy"}
+    healthcheck:
+      test: ps aux | grep websocket-server || exit 1
+      interval: 10s
+      timeout: 1s
+      retries: 60
+
     restart: ${RESTART}
     volumes:
       - zammad-data:/opt/zammad
@@ -69,7 +71,8 @@ services:
     <<: *zammad
     command: ["zammad-nginx"]
     depends_on:
-      zammad: {"condition": "service_healthy"}
+      zammad-railsserver: {"condition": "service_healthy"}
+      zammad-websocket: {"condition": "service_healthy"}
     restart: ${RESTART}
     volumes:
       - zammad-data:/opt/zammad
@@ -85,7 +88,7 @@ services:
       test: ["CMD-SHELL", "curl --silent --fail zammad-elasticsearch:9200/_cluster/health || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 300
+      retries: 60
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
 
@@ -99,7 +102,7 @@ services:
       test: pidof memcached || exit 1
       interval: 10s
       timeout: 2s
-      retries: 300
+      retries: 60
 
   zammad-postgresql:
     build: docker/containers/zammad-postgresql
@@ -111,7 +114,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
-      retries: 300
+      retries: 60
     volumes:
       - postgresql-data:/var/lib/postgresql/data
 
@@ -121,7 +124,7 @@ services:
     command: ['zammad-testing']
     environment:
       RAILS_ENV: "test"
-    volumes: [".:/opt/zammad", "/opt/zammad/config/database.yml"]
+    volumes: [".:/opt/zammad"]
 
   #  spring:
   #    <<: *zammad
