@@ -1,7 +1,7 @@
 FROM memcached:alpine
 MAINTAINER Zanmmad <info@zammad.org>
-
-ENV MEMCACHED_SIZE 256M
+#ARG MEMCACHED_SIZE
+#ENV MEMCACHED_SIZE=MEMCACHED_SIZE
 
 LABEL org.label-schema.build-date="$BUILD_DATE" \
       org.label-schema.name="Zammad" \
@@ -14,10 +14,9 @@ LABEL org.label-schema.build-date="$BUILD_DATE" \
       org.label-schema.schema-version="1.2" \
       org.label-schema.docker.cmd="sysctl -w vm.max_map_count=262144;docker-compose up"
 
-# docker init
+# healthcheck
 USER root
-COPY ./docker-entrypoint.sh /
-RUN chmod +x /docker-entrypoint.sh
+RUN apk update && apk --no-cache add netcat-openbsd
+
 USER memcache
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["zammad-memcached"]
+CMD memcached -m "${MEMCACHED_SIZE}"

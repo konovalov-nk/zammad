@@ -1,12 +1,13 @@
 FROM ruby:2.4.4-slim
 MAINTAINER Zammad <info@zammad.org>
 ARG BUILD_DATE
+ARG BUNDLE_WITHOUT
+ARG ZAMMAD_USER
 
 ENV ZAMMAD_DIR /opt/zammad
-ENV ZAMMAD_USER zammad
-ENV RAILS_ENV development
 ENV RAILS_SERVER puma
 ENV GOSU_VERSION 1.10
+ENV ZAMMAD_READY_PATH ${ZAMMAD_DIR}/tmp
 ENV ZAMMAD_READY_FILE ${ZAMMAD_DIR}/tmp/zammad.ready
 
 # install dependencies & gosu
@@ -31,22 +32,18 @@ RUN BUILD_DEPENDENCIES="build-essential ca-certificates curl dirmngr git gnupg2 
 RUN groupadd -g 1000 ${ZAMMAD_USER} \
     && useradd -M -d ${ZAMMAD_DIR} -s /bin/bash -u 1000 -g 1000 ${ZAMMAD_USER}
 
+WORKDIR ${ZAMMAD_DIR}
+
+# all build stages are cached
+COPY Gemfile Gemfile.lock ${ZAMMAD_DIR}/
+RUN bundle install --jobs $(nproc) --without ${BUNDLE_WITHOUT}
+
 # use current branch as a source
 ADD . ${ZAMMAD_DIR}
-
-RUN cd ${ZAMMAD_DIR} \
-    && bundle install --without mysql \
-    && contrib/packager.io/fetch_locales.rb \
-    && sed -e 's#.*adapter: postgresql#  adapter: nulldb#g' -e 's#.*username:.*#  username: postgres#g' -e 's#.*password:.*#  password: \n  host: zammad-postgresql\n#g' < contrib/packager.io/database.yml.pkgr > config/database.yml \
-    && sed -i '/# Use a different logger for distributed setups./a \ \ config.logger = Logger.new(STDOUT)' config/environments/development.rb \
-    && sed -i 's/.*scheduler_\(err\|out\).log.*//g' script/scheduler.rb \
-    # && bundle exec rake assets:precompile \
-    # && rm -r tmp/cache \
+RUN contrib/packager.io/fetch_locales.rb
+RUN cp config/database/database.yml config/database.yml \
     && chown -R ${ZAMMAD_USER}:${ZAMMAD_USER} ${ZAMMAD_DIR}
 
-# docker init
-COPY docker-entrypoint.sh /
+# init scripts
+COPY docker/containers/zammad/docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
-ENTRYPOINT ["/docker-entrypoint.sh"]
-
-WORKDIR ${ZAMMAD_DIR}

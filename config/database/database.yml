@@ -8,17 +8,11 @@ default: &default
   timeout: 5000
   encoding: utf8
 
-  ##### postgresql config #####
-
-  adapter: postgresql
-  # username: zammad
-  # password:
-
-  #### mysql config #####
-
-  # adapter: mysql2
-  # username: zammad
-  # password: <Password>
+  ##### database config #####
+  adapter: <%= ENV.fetch("DB_ADAPTER") %>
+  username: <%= ENV.fetch("DB_USERNAME") %>
+  password: <%= ENV.fetch("DB_PASSWORD") %>
+  host: <%= ENV.fetch("DB_HOST") %>
 
 production:
   <<: *default

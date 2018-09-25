@@ -52,8 +52,14 @@ module Zammad
     # REST api path
     config.api_path = '/api/v1'
 
-    # define cache store
-    config.cache_store = :file_store, Rails.root.join('tmp', "cache_file_store_#{Rails.env}")
+    # define cache & session stores
+    stores = {
+      memcache: [:dalli_store, 'zammad-memcached:11211'],
+      file: [:file_store, Rails.root.join('tmp', "cache_file_store_#{Rails.env}")]
+    }
+
+    config.cache_store = stores[ENV['CACHE_STORE'].to_sym]
+    config.session_store = stores[ENV['SESSION_STORE'].to_sym]
 
     # default preferences by permission
     config.preferences_default_by_permission = {
