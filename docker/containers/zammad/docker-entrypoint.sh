@@ -85,15 +85,18 @@ fi
 
 
 if [ "$1" = 'zammad-testing' ]; then
-  echo "starting rspec..."
+  CONTAINER_ID=$(head -1 /proc/self/cgroup|cut -d/ -f3 | cut -c1-12)
+  echo "starting testing..."
+
   export RAILS_ENV=test
   . script/bootstrap.sh
-  echo "bootstrap finished ..."
-  echo "you can now run 'docker-compose run zammad-testing zammad-bash'..."
+
+  echo "you can now run 'docker exec -it ${CONTAINER_ID} /bin/bash'..."
   echo "rspec tests: bundle exec rspec"
   echo "rails tests: bundle exec rake test:units"
   echo "rails tests: bundle exec rake test:controllers"
 
-  # exec gosu ${ZAMMAD_USER}:${ZAMMAD_USER} bundle exec rspec
+  # prevent container from exiting (for shell access)
+  sleep infinity
 fi
 
