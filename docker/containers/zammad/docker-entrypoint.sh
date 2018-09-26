@@ -2,6 +2,8 @@
 
 set -e
 
+CONTAINER_ID=$(head -1 /proc/self/cgroup|cut -d/ -f3 | cut -c1-12)
+
 : "${POSTGRESQL_DB:=zammad_development}"
 : "${POSTGRESQL_DB_CREATE:=true}"
 : "${RAILSSERVER_HOST:=zammad-railsserver}"
@@ -69,6 +71,7 @@ fi
 if [ "$1" = 'zammad-railsserver' ]; then
   echo "starting railsserver..."
   exec gosu ${ZAMMAD_USER}:${ZAMMAD_USER} bundle exec rails server puma -b [::] -p ${RAILSSERVER_PORT} -e ${RAILS_ENV}
+  echo "you can run a shell for this container using 'docker exec -it ${CONTAINER_ID} /bin/bash'..."
 fi
 
 
@@ -85,13 +88,12 @@ fi
 
 
 if [ "$1" = 'zammad-testing' ]; then
-  CONTAINER_ID=$(head -1 /proc/self/cgroup|cut -d/ -f3 | cut -c1-12)
   echo "starting testing..."
 
   export RAILS_ENV=test
   . script/bootstrap.sh
 
-  echo "you can now run 'docker exec -it ${CONTAINER_ID} /bin/bash'..."
+  echo "you can run a shell for this container using 'docker exec -it ${CONTAINER_ID} /bin/bash'..."
   echo "rspec tests: bundle exec rspec"
   echo "rails tests: bundle exec rake test:units"
   echo "rails tests: bundle exec rake test:controllers"
@@ -99,4 +101,3 @@ if [ "$1" = 'zammad-testing' ]; then
   # prevent container from exiting (for shell access)
   sleep infinity
 fi
-
